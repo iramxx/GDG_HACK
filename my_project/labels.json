@@ -1,0 +1,8 @@
+{
+    "kitchen.jpg": [
+      {"label": "chair", "bbox": [400, 150, 300, 800]},
+      {"label": "table", "bbox": [300, 200, 350, 300]},
+      {"label": "lamp", "bbox": [500, 100, 550, 200]}
+    ]
+  }
+  

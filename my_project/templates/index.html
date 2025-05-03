@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Interactive Visual Learning Platform</title>
+    <link rel="stylesheet" href="/static/style.css">
+    <style>
+        #myCanvas { border: 1px solid black; }
+        #instruction { font-size: 1.5em; margin-bottom: 10px; }
+        #message { font-size: 1.2em; color: green; margin-top: 10px; }
+        button { font-size: 1em; margin: 5px; padding: 10px 20px; }
+    </style>
+</head>
+<body>
+    <h1>Interactive Visual Learning Platform</h1>
+    <div>
+        <button onclick="chooseMode('cognitive')">Cognitive Support Mode</button>
+        <button onclick="chooseMode('language')">Language Learning Mode</button>
+    </div>
+    <p id="instruction"></p>
+    <canvas id="myCanvas" width="800" height="600"></canvas>
+    <p id="message"></p>
+
+<script>
+let targetLabel = "";
+let clickAttempts = 0;
+const baseRadius = 100;
+const canvas = document.getElementById('myCanvas');
+const ctx = canvas.getContext('2d');
+const img = new Image();
+img.src = "/static/images/{{ image }}";
+img.onload = () => { ctx.drawImage(img, 0, 0, canvas.width, canvas.height); };
+
+function chooseMode(mode) {
+    document.getElementById('instruction').innerText = `Mode: ${mode} → Loading target...`;
+    fetch('/get_prompt')
+        .then(res => res.json())
+        .then(data => {
+            targetLabel = data.target;
+            document.getElementById('instruction').innerText = `Find: ${targetLabel}`;
+        });
+}
+
+canvas.addEventListener('click', function(e) {
+    const rect = canvas.getBoundingClientRect();
+    const x = e.clientX - rect.left;
+    const y = e.clientY - rect.top;
+
+    fetch('/check_click', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({x: x, y: y, target: targetLabel})
+    })
+    .then(res => res.json())
+    .then(data => {
+        if (data.correct) {
+            document.getElementById('message').innerText = '✅ Correct!';
+            const [x1, y1, x2, y2] = data.bbox;
+            ctx.strokeStyle = 'green';
+            ctx.lineWidth = 4;
+            ctx.strokeRect(x1, y1, x2 - x1, y2 - y1);
+        } else {
+            clickAttempts++;
+            let radius = Math.max(baseRadius / clickAttempts, 10);
+            const [x1, y1, x2, y2] = data.bbox;
+            const centerX = (x1 + x2) / 2;
+            const centerY = (y1 + y2) / 2;
+
+            ctx.beginPath();
+            ctx.arc(centerX, centerY, radius, 0, 2 * Math.PI);
+            ctx.strokeStyle = 'red';
+            ctx.lineWidth = 3;
+            ctx.stroke();
+
+            document.getElementById('message').innerText = '❌ Try again!';
+        }
+    });
+});
+</script>
+</body>
+</html>
